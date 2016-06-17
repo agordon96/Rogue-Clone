@@ -1,0 +1,168 @@
+#include <ctype.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
+#include <ncurses.h>
+#include "rogue.h"
+
+void assignValues(Room * room, char line[])
+{
+	char * token;
+
+	room->xGold = 0;
+	room->xHero = 0;
+	room->xMons = 0;
+	room->xPot = 0;
+
+	room->xSize = atoi(strtok(line, "X"));
+	token = strtok(NULL, " ");
+	room->ySize = atoi(token);
+	while(token != NULL)
+	{
+		int i = 1;
+		int j = 0;
+		char str1[5] = "";
+		char str2[5] = "";
+		
+		token = strtok(NULL, " ");
+		if(token == NULL)
+		{
+			break;
+		}
+
+		while(isdigit(token[i]))
+		{
+			str1[i-1] = token[i];
+			i++;
+		}
+		
+		while(isdigit(token[i+1]))
+		{
+			str2[j] = token[i+1];
+			i++;
+			j++;
+		}
+		switch(token[0])
+		{
+			case 'd':
+				if(token[1] == 'w')
+				{
+					room->doorLocW = atoi(str2);
+				}
+				else if(token[1] == 'e')
+				{
+					room->doorLocE = atoi(str2);
+				}
+				else if(token[1] == 's')
+				{
+					room->doorLocS = atoi(str2);
+				}
+				else if(token[1] == 'n')
+				{
+					room->doorLocN = atoi(str2);
+				}
+				break;
+			case 'g':
+				room->xGold = atoi(str1);
+				room->yGold = atoi(str2);
+				break;
+			case 'M':
+				room->xMons = atoi(str1);
+				room->yMons = atoi(str2);
+				break;
+			case 'h':
+				room->xHero = atoi(str1);
+				room->yHero = atoi(str2);
+				break;
+			case 'p':
+				room->xPot = atoi(str1);
+				room->yPot = atoi(str2);
+				break;
+		}
+	}
+}
+
+void drawRoom(Room * room, Hero * hero, int xPos, int yPos)
+{
+	int i;
+
+	for(i = xPos; i <= (xPos + room->xSize + 1); i++)
+	{
+		mvaddch(yPos, i, '-');
+		mvaddch((yPos + room->ySize + 1), i, '-');
+	}
+	for(i = yPos; i <= (yPos + room->ySize + 1); i++)
+	{
+		mvaddch(i, xPos, '|');
+		mvaddch(i, (xPos + room->xSize + 1), '|');
+	}
+
+	if(room->xHero > 0)
+	{
+		hero->xPos = (xPos + room->xHero);
+		hero->yPos = (yPos + room->yHero);
+	}
+	if(room->xGold > 0)
+	{
+		mvaddch(yPos + room->yGold, xPos + room->xGold, '*');
+	}
+	if(room->xMons > 0)
+	{
+		mvaddch(yPos + room->yMons, xPos + room->xMons, 'M');
+	}
+	if(room->xPot > 0)
+	{
+		mvaddch(yPos + room->yPot, xPos + room->xPot, 'p');
+	}
+}
+
+void inputChoice(Hero * hero, int input)
+{
+	int tempX = hero->xPos;
+	int tempY = hero->yPos;
+
+	mvaddch(hero->yPos, hero->xPos, ' ');
+	tolower(input);
+	switch(input)
+	{
+		case 'w':
+			hero->yPos -= 1;
+			break;
+		case 'a':
+			hero->xPos -= 1;
+			break;
+		case 's':
+			hero->yPos += 1;
+			break;
+		case 'd':
+			hero->xPos += 1;
+			break;
+		case 'q':
+			break;
+		default:
+			mvaddstr(0, 0, "Incorrect input. See the README.txt for assistance.");
+			break;
+	}
+
+	char s = mvinch(hero->yPos, hero->xPos) & A_CHARTEXT;
+	if(s == '-' || s == '|')
+	{
+		hero->xPos = tempX;
+		hero->yPos = tempY;
+	}
+	else if(s == '*')
+	{
+		mvaddstr(0, 0, "You got 10 gold.");
+		hero->gold += 10;
+	}
+	else if(s == 'M')
+	{
+		hero->xPos = tempX;
+		hero->yPos = tempY;
+	}
+	else if(s == 'p')
+	{
+		mvaddstr(0, 0, "You found a potion.");
+		hero->potions += 1;
+	}
+}
